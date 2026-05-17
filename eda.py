@@ -17,8 +17,24 @@ def clean_data(filepath):
     df = df.dropna(subset=['total_seconds', '5km_seconds', 'age_category'])
     df = df.drop_duplicates()
 
-    # Filter out physically impossible timing errors (5K time >= Total time)
+    # Filter 1: Physically impossible timing errors (5K time >= Total time)
     df = df[df['total_seconds'] > df['5km_seconds']]
+
+    # Calculate second half time for advanced filtering
+    df['second_half_seconds'] = df['total_seconds'] - df['5km_seconds']
+
+    # Filter 2: Remove impossible second-half times (e.g., faster than world record pace ~12.5 mins)
+    df = df[df['second_half_seconds'] > 750]
+
+    # Filter 3: Remove extreme pace discrepancies (one half taking >3x longer than the other)
+    df = df[(df['5km_seconds'] / df['second_half_seconds'] < 3) &
+            (df['second_half_seconds'] / df['5km_seconds'] < 3)]
+
+    # Calculate split strategy (Positive vs Negative)
+    df['split_strategy'] = df.apply(
+        lambda x: 'Negative Split (Faster 2nd Half)' if x['second_half_seconds'] <= x['5km_seconds']
+        else 'Positive Split (Slower 2nd Half)', axis=1
+    )
 
     # Calculate split strategy (Positive vs Negative)
     df['second_half_seconds'] = df['total_seconds'] - df['5km_seconds']
