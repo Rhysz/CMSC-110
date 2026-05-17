@@ -1,10 +1,9 @@
-# app.py
 import streamlit as st
 import pandas as pd
 import scipy.stats as stats
-import eda  # Importing your groupmates' code module
+import eda
 
-# --- RUBRIC: Title and Brief Introduction ---
+# 1. Title and Introduction
 st.set_page_config(page_title="Madrid 10K Analyzer", layout="wide")
 st.title("🏃‍♂️ Madrid 10K Race Performance Analyzer")
 
@@ -13,8 +12,7 @@ st.write(
     "This application analyzes finisher data from the Madrid New Year's Eve 10K race. It is designed to help runners analyze historical pacing strategies, understand demographic performance trends, and predict their placement for future races based on real-world data.")
 
 
-# --- Data Loading ---
-# The @st.cache_data decorator ensures the file is only loaded once, making the app fast.
+# 2. Data Loading
 @st.cache_data
 def load_dataset():
     return eda.clean_data("madrid_10k_20191231.csv")
@@ -22,17 +20,15 @@ def load_dataset():
 
 df = load_dataset()
 
-# --- RUBRIC FEATURE 1: Filtering by Category ---
+# 3. Sidebar Filtering
 st.sidebar.header("Filter Race Data")
 
-# Extract unique values from the dataset for the dropdowns
 genders = ["All"] + list(df['sex'].unique())
 age_groups = ["All"] + list(sorted(df['age_category'].unique()))
 
 selected_gender = st.sidebar.selectbox("Select Gender", genders)
 selected_age = st.sidebar.selectbox("Select Age Category", age_groups)
 
-# Apply the logic to filter the dataframe
 filtered_df = df.copy()
 if selected_gender != "All":
     filtered_df = filtered_df[filtered_df['sex'] == selected_gender]
@@ -42,24 +38,23 @@ if selected_age != "All":
 st.sidebar.markdown("---")
 st.sidebar.write(f"**Runners matching criteria:** {len(filtered_df):,}")
 
-# --- RUBRIC FEATURE 2: Displaying Key Statistics ---
+# 4. Key Performance Metrics
 st.subheader("📊 Key Performance Metrics")
 col1, col2, col3 = st.columns(3)
 
-# Calculate dynamic statistics based on current filters
 if len(filtered_df) > 0:
     avg_seconds = filtered_df['total_seconds'].mean()
     fastest_seconds = filtered_df['total_seconds'].min()
 
     col1.metric("Total Runners Analyzed", f"{len(filtered_df):,}")
-    col2.metric("Average Finish Time", f"{int(avg_seconds // 60)}m {int(avg_seconds % 60)}s")
-    col3.metric("Fastest Finish Time", f"{int(fastest_seconds // 60)}m {int(fastest_seconds % 60)}s")
+    col2.metric("Average Finish Time", f"{int(avg_seconds // 60)}:{int(avg_seconds % 60):02d}")
+    col3.metric("Fastest Finish Time", f"{int(fastest_seconds // 60)}:{int(fastest_seconds % 60):02d}")
 else:
     st.warning("No data matches the selected filters.")
 
 st.divider()
 
-# --- RUBRIC FEATURE 3: Prediction Input Form ---
+# 5. Prediction Form
 st.subheader("⏱️ Placement Prediction Calculator")
 st.write("Enter your target finish time to see your predicted percentile rank based on the filtered cohort.")
 
@@ -86,15 +81,19 @@ if len(filtered_df) > 0:
 
 st.divider()
 
-# --- RUBRIC FEATURE 4 & 5: Interactive Graphs and Plotting Trends ---
+# 6. Interactive Visualizations
 st.subheader("📈 Exploratory Data Analysis")
 
-# Organizing visualizations into clean tabs
-tab1, tab2, tab3, tab4 = st.tabs(["Finish Time Distribution", "Demographics", "Split Correlation", "Pacing Efficiency"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "Finish Time Distribution",
+    "Demographics",
+    "Split Correlation",
+    "Pacing Efficiency",
+    "Gender Pace Gap"
+])
 
 with tab1:
     st.write("**Univariate Analysis:** Adjust the slider to change the granularity of the histogram.")
-    # Interactive Slider for the chart
     bins = st.slider("Number of Histogram Bins", min_value=10, max_value=100, value=30)
     fig_uni = eda.plot_univariate(filtered_df, bins=bins)
     st.pyplot(fig_uni)
@@ -107,11 +106,18 @@ with tab2:
 
 with tab3:
     st.write("**Correlation Analysis:** How strongly early race splits correlate with the final finish time.")
-    fig_corr = eda.plot_correlation(filtered_df)
-    st.pyplot(fig_corr)
+    if len(filtered_df) > 5:
+        fig_corr = eda.plot_correlation(filtered_df)
+        st.pyplot(fig_corr)
 
 with tab4:
-    st.write("**Multivariate Analysis:** The relationship between 5km split times and final finish times.")
+    st.write("**Multivariate Analysis:** Efficiency and pacing strategy. Green points indicate a faster second half.")
     if len(filtered_df) > 10:
-        fig_multi = eda.plot_multivariate(filtered_df)
+        fig_multi = eda.plot_efficiency(filtered_df)
         st.pyplot(fig_multi)
+
+with tab5:
+    st.write("**Comparative Analysis:** Median finish times by gender across age brackets.")
+    if len(filtered_df) > 0:
+        fig_gap = eda.plot_gender_gap(filtered_df)
+        st.pyplot(fig_gap)
