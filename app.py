@@ -7,7 +7,7 @@ import os
 
 # 1. Title and Introduction
 st.set_page_config(page_title="Madrid 10K Analyzer", layout="wide")
-st.title("🏃‍♂️ Madrid 10K Race Performance Analyzer")
+st.title("🏃‍♂️ San Silvestre Vallecana 2019 Performance Analyzer")
 
 st.write("### Purpose and Importance of the Application")
 st.write(
