@@ -72,12 +72,12 @@ if len(filtered_df) > 0:
 
     if percentile <= 25:
         st.success(
-            f"**Top Tier!** You would be faster than {beat_percentage:.1f}% of the runners in this category. (Top {percentile:.1f}%)")
+            f"**Top Tier!** You would be faster than {beat_percentage:.1f}% of the runners in this category. :orange[(**Top {percentile:.1f}%**)]")
     elif percentile <= 50:
         st.info(
-            f"**Above Average!** You would be faster than {beat_percentage:.1f}% of the runners in this category. (Top {percentile:.1f}%)")
+            f"**Above Average!** You would be faster than {beat_percentage:.1f}% of the runners in this category. :green[(**Top {percentile:.1f}%**)]")
     else:
-        st.warning(f"**Keep Pushing!** You would be in the bottom {100 - percentile:.1f}% of this category.")
+        st.warning(f"**Keep Pushing!** You would be in the :red[**bottom {100 - percentile:.1f}%**] of this category.")
 
 st.divider()
 
