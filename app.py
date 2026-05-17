@@ -1,56 +1,77 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import scipy.stats as stats
 import eda
+import os
 
 # 1. Title and Introduction
 st.set_page_config(page_title="Madrid 10K Analyzer", layout="wide")
 st.title("🏃‍♂️ Madrid 10K Race Performance Analyzer")
 
-st.write("### Brief Introduction")
+st.write("### Purpose and Importance of the Application")
 st.write(
-    "This application analyzes finisher data from the Madrid New Year's Eve 10K race. It is designed to help runners analyze historical pacing strategies, understand demographic performance trends, and predict their placement for future races based on real-world data.")
+    "This application analyzes finisher data from the Madrid New Year's Eve 10K race. It is designed to help runners, coaches, and sports analysts investigate pacing strategies, understand demographic performance trends, and predict placements across varying age brackets and gender demographics."
+)
 
 
 # 2. Data Loading
 @st.cache_data
 def load_dataset():
-    return eda.clean_data("madrid_10k_20191231.csv")
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(current_directory, 'madrid_10k_20191231.csv')
+    return eda.clean_data(csv_path)
 
 
-df = load_dataset()
+try:
+    df = load_dataset()
+except Exception as e:
+    st.error(f"⚠️ Dataset mapping error: {e}")
+    st.stop()
 
 # 3. Sidebar Filtering
-st.sidebar.header("Filter Race Data")
+st.sidebar.header("🎯 Live Filter Controls")
+st.sidebar.markdown("Use these adjustments to segment the race field:")
 
-genders = ["All"] + list(df['sex'].unique())
-age_groups = ["All"] + list(sorted(df['age_category'].unique()))
+gender_list = sorted(list(df['sex'].unique()))
+selected_genders = st.sidebar.multiselect("Select Gender Group:", gender_list, default=gender_list)
 
-selected_gender = st.sidebar.selectbox("Select Gender", genders)
-selected_age = st.sidebar.selectbox("Select Age Category", age_groups)
+age_categories = sorted([cat for cat in df['age_category'].dropna().unique()])
+selected_ages = st.sidebar.multiselect("Select Age Categories:", age_categories, default=age_categories)
 
-filtered_df = df.copy()
-if selected_gender != "All":
-    filtered_df = filtered_df[filtered_df['sex'] == selected_gender]
-if selected_age != "All":
-    filtered_df = filtered_df[filtered_df['age_category'] == selected_age]
+min_min = float(np.floor(df['total_minutes'].min()))
+max_min = float(np.ceil(df['total_minutes'].max()))
+selected_time_range = st.sidebar.slider(
+    "Set Completion Time Window (Minutes):",
+    min_value=min_min,
+    max_value=max_min,
+    value=(min_min, max_min),
+    step=0.5
+)
 
-st.sidebar.markdown("---")
-st.sidebar.write(f"**Runners matching criteria:** {len(filtered_df):,}")
+filtered_df = df[
+    (df['sex'].isin(selected_genders)) &
+    (df['age_category'].isin(selected_ages)) &
+    (df['total_minutes'] >= selected_time_range[0]) &
+    (df['total_minutes'] <= selected_time_range[1])
+    ]
+
+if filtered_df.empty:
+    st.warning(
+        "⚠️ No data items match your exact selected filter targets. Adjust the sidebar sliders or choose more groups!")
+    st.stop()
 
 # 4. Key Performance Metrics
-st.subheader("📊 Key Performance Metrics")
-col1, col2, col3 = st.columns(3)
+st.subheader("📊 Segment Overview & Key Metrics")
+col1, col2, col3, col4 = st.columns(4)
 
-if len(filtered_df) > 0:
-    avg_seconds = filtered_df['total_seconds'].mean()
-    fastest_seconds = filtered_df['total_seconds'].min()
+avg_seconds = filtered_df['total_seconds'].mean()
+fastest_seconds = filtered_df['total_seconds'].min()
 
-    col1.metric("Total Runners Analyzed", f"{len(filtered_df):,}")
-    col2.metric("Average Finish Time", f"{int(avg_seconds // 60)}:{int(avg_seconds % 60):02d}")
-    col3.metric("Fastest Finish Time", f"{int(fastest_seconds // 60)}:{int(fastest_seconds % 60):02d}")
-else:
-    st.warning("No data matches the selected filters.")
+col1.metric("Competitors in View", f"{filtered_df.shape[0]:,}")
+col2.metric("Mean Completion Pace", f"{int(avg_seconds // 60)}:{int(avg_seconds % 60):02d}")
+col3.metric("Mean Halfway Split (5K)", f"{filtered_df['split_5k_minutes'].mean():.1f} mins")
+col4.metric("Fastest Clock Time", f"{int(fastest_seconds // 60)}:{int(fastest_seconds % 60):02d}")
 
 st.divider()
 
@@ -84,12 +105,11 @@ st.divider()
 # 6. Interactive Visualizations
 st.subheader("📈 Exploratory Data Analysis")
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     "Finish Time Distribution",
     "Demographics",
-    "Split Correlation",
     "Pacing Efficiency",
-    "Gender Pace Gap"
+    "Split Correlation"
 ])
 
 with tab1:
@@ -105,19 +125,39 @@ with tab2:
         st.pyplot(fig_bi)
 
 with tab3:
-    st.write("**Correlation Analysis:** How strongly early race splits correlate with the final finish time.")
-    if len(filtered_df) > 5:
-        fig_corr = eda.plot_correlation(filtered_df)
-        st.pyplot(fig_corr)
-
-with tab4:
     st.write("**Multivariate Analysis:** Efficiency and pacing strategy. Green points indicate a faster second half.")
     if len(filtered_df) > 10:
         fig_multi = eda.plot_efficiency(filtered_df)
         st.pyplot(fig_multi)
 
-with tab5:
-    st.write("**Comparative Analysis:** Median finish times by gender across age brackets.")
-    if len(filtered_df) > 0:
-        fig_gap = eda.plot_gender_gap(filtered_df)
-        st.pyplot(fig_gap)
+with tab4:
+    st.write(
+        "**Interactive Correlation Analysis:** Discover how strongly early race splits predict final finish times.")
+
+    col5, col6 = st.columns([1.2, 1])
+    with col5:
+        # Mapping clean text labels to the raw dataframe columns
+        metric_mapping = {
+            '2.5km Split Time': '2.5km_seconds',
+            '5km Split Time': '5km_seconds',
+            '7.5km Split Time': '7.5km_seconds'
+        }
+
+        chosen_label = st.selectbox(
+            "Select intermediate benchmark to correlate with total finish time:",
+            list(metric_mapping.keys())
+        )
+        chosen_metric = metric_mapping[chosen_label]
+
+        if len(filtered_df) > 5:
+            fig_corr = eda.plot_correlation(filtered_df, chosen_metric, chosen_label)
+            st.pyplot(fig_corr)
+
+    with col6:
+        st.markdown(f"""
+        <br><br>
+        **Interactive Correlation Insight:**
+        * You are currently inspecting the interactive link between **{chosen_label}** and final finish time.
+        * A coefficient near **1.0000** indicates that performance at that specific checkpoint strongly anchors the eventual placement. 
+        * Changing the dropdown allows you to witness mathematically how pacing correlation strengthens or stabilizes as athletes approach the final marker.
+        """, unsafe_allow_html=True)
