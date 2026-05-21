@@ -1,3 +1,9 @@
+'''
+BAGORIO, CAPULE, DIZON, RINON
+2026 - 05
+Description: EDA functions: Data cleaning and analyses
+'''
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -5,14 +11,14 @@ from matplotlib.ticker import FuncFormatter
 
 
 def format_time(x, pos):
-    """Formats axis labels from raw seconds to MM:SS"""
+    #Formats axis labels from raw seconds to MM:SS
     mins = int(x // 60)
     secs = int(x % 60)
     return f"{mins}:{secs:02d}"
 
 
 def clean_data(filepath):
-    """Loads data, removes invalid entries, calculates pacing, and formats labels."""
+    #Loads data, removes invalid entries, calculates pacing, and formats labels.
     df = pd.read_csv(filepath)
     df = df.dropna(subset=['total_seconds', '5km_seconds', 'age_category', 'sex'])
     df = df.drop_duplicates()
