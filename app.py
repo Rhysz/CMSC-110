@@ -1,9 +1,3 @@
-'''
-BAGORIO, CAPULE, DIZON, RINON
-2026 - 05
-Description: Webapp using streamlit library
-'''
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -13,12 +7,32 @@ import os
 
 # 1. Title and Introduction
 st.set_page_config(page_title="Madrid 10K Analyzer", layout="wide")
-st.title("🏃‍♂️ San Silvestre Vallecana 2019 Performance Analyzer")
+st.title("🏃‍♂️ Madrid 10K Race Performance Analyzer")
 
-st.write("### Purpose and Importance of the Application")
+# --- IMAGE 1: Hero Banner ---
+st.image("runners.png", use_container_width=True, caption="San Silvestre Vallecana - The Final Race of the Year")
+
+st.write("### Welcome to the ultimate finish line post-mortem")
 st.write(
     "This application analyzes finisher data from the Madrid New Year's Eve 10K race. It is designed to help runners, coaches, and sports analysts investigate pacing strategies, understand demographic performance trends, and predict placements across varying age brackets and gender demographics."
 )
+
+with st.expander("📖 About the Race & Data Significance"):
+    col_exp1, col_exp2 = st.columns([2, 1])
+
+    with col_exp1:
+        st.markdown("""
+        * **The Route:** The race follows a linear path from the Santiago Bernabéu Stadium (Chamartín) to the Estadio de Vallecas.
+        * **Elevation Profile:** The course is famous for its "fast but deceptive" layout. The first 8 kilometers are primarily downhill, encouraging high initial velocities. 
+        * **The Sting in the Tail:** The final 2 kilometers feature a challenging uphill incline as runners enter the Vallecas district. This profile often results in the "Split Decay" seen in the Pacing Efficiency metrics.
+        * **Competitive Field:** The event is divided into two distinct tiers:
+            * *San Silvestre Popular:* A mass-participation event for over 40,000 amateur runners.
+            * *San Silvestre Internacional:* An elite only reserved for athletes with proven sub-39 minute (men) or sub-45 minute (women) 10K times.
+        * **Data Significance:** This dataset offers a unique look at human performance under pressure. Because the race takes place on the final day of the year, it captures peak performance data where runners are often attempting to set their final personal best of the season.
+        """)
+    with col_exp2:
+        # --- IMAGE 2: Start Area / Event Context ---
+        st.image("start.png", use_container_width=True, caption="Race Start at Santiago Bernabéu")
 
 
 # 2. Data Loading
@@ -74,16 +88,19 @@ col1, col2, col3, col4 = st.columns(4)
 avg_seconds = filtered_df['total_seconds'].mean()
 fastest_seconds = filtered_df['total_seconds'].min()
 
-col1.metric("Competitors in View", f"{filtered_df.shape[0]:,}")
-col2.metric("Mean Completion Pace", f"{int(avg_seconds // 60)}:{int(avg_seconds % 60):02d}")
-col3.metric("Mean Halfway Split (5K)", f"{filtered_df['split_5k_minutes'].mean():.1f} mins")
+col1.metric("Total competitor", f"{filtered_df.shape[0]:,}",
+            help="This represents the total number of athletes included in the current filtered dataset. This metric establishes the competitive scale and provides the necessary population volume to validate demographic performance trends.")
+col2.metric("Mean completion time", f"{int(avg_seconds // 60)}:{int(avg_seconds % 60):02d}",
+            help="The historical performance equilibrium for the field. This serves as the primary benchmark for a mid-pack finish, separating the top-tier competitive bracket from the recreational participant base.")
+col3.metric("Mean Halfway Split (5K)", f"{filtered_df['split_5k_minutes'].mean():.1f} mins",
+            help="The mean split recorded at the 5K interval. This metric tracks early-stage energy expenditure and serves as a critical indicator for pacing.")
 col4.metric("Fastest Clock Time", f"{int(fastest_seconds // 60)}:{int(fastest_seconds % 60):02d}")
 
 st.divider()
 
 # 5. Prediction Form
 st.subheader("⏱️ Placement Prediction Calculator")
-st.write("Enter your target finish time to see your predicted percentile rank based on the filtered cohort.")
+st.write("Punch in your stats to see exactly where you land in the pack.")
 
 form_col1, form_col2 = st.columns(2)
 with form_col1:
@@ -109,40 +126,40 @@ if len(filtered_df) > 0:
 st.divider()
 
 # 6. Interactive Visualizations
-st.subheader("📈 Exploratory Data Analysis")
+st.subheader("📈 The Analytical Toolkit")
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Finish Time Distribution",
     "Demographics",
     "Pacing Efficiency",
-    "Split Correlation"
+    "Split Correlation",
+    "Route & Splits",
+    "Raw Dataset"
 ])
 
 with tab1:
-    st.write("**Univariate Analysis:** Adjust the slider to change the granularity of the histogram.")
+    st.write("**Finish Time distribution:** See where the crowd clusters and how you compare to the 'average' runner.")
     bins = st.slider("Number of Histogram Bins", min_value=10, max_value=100, value=30)
     fig_uni = eda.plot_univariate(filtered_df, bins=bins)
     st.pyplot(fig_uni)
 
 with tab2:
-    st.write("**Bivariate Analysis:** Comparing finish times across age and gender.")
+    st.write("**Demographics:** A deep dive into the age, gender, and regional composition of the race.")
     if len(filtered_df) > 0:
         fig_bi = eda.plot_bivariate(filtered_df)
         st.pyplot(fig_bi)
 
 with tab3:
-    st.write("**Multivariate Analysis:** Efficiency and pacing strategy. Green points indicate a faster second half.")
+    st.write("**Pacing Efficiency:** Did you start too fast? Analyze Negative Splits vs. the Positive Splits.")
     if len(filtered_df) > 10:
         fig_multi = eda.plot_efficiency(filtered_df)
         st.pyplot(fig_multi)
 
 with tab4:
-    st.write(
-        "**Interactive Correlation Analysis:** Discover how strongly early race splits predict final finish times.")
+    st.write("**Split Correlation:** See how your 5K split predicted your final 10K outcome.")
 
     col5, col6 = st.columns([1.2, 1])
     with col5:
-        # Mapping clean text labels to the raw dataframe columns
         metric_mapping = {
             '2.5km Split Time': '2.5km_seconds',
             '5km Split Time': '5km_seconds',
@@ -165,5 +182,18 @@ with tab4:
         **Interactive Correlation Insight:**
         * You are currently inspecting the interactive link between **{chosen_label}** and final finish time.
         * A coefficient near **1.0000** indicates that performance at that specific checkpoint strongly anchors the eventual placement. 
-        * Changing the dropdown allows you to witness mathematically how pacing correlation strengthens or stabilizes as athletes approach the final marker.
         """, unsafe_allow_html=True)
+
+with tab5:
+    st.write("**Route & Splits:** The course profile mapped against median segment paces.")
+
+    # --- IMAGE 3: Route Map ---
+    st.image("route.png", use_container_width=True, caption="Race Route Map: Madrid 10K")
+
+    if len(filtered_df) > 0:
+        fig_route = eda.plot_route_splits(filtered_df)
+        st.plotly_chart(fig_route, use_container_width=True)
+
+with tab6:
+    st.write("**Cleaned Dataset:** View the fully sanitized raw data (Missing splits and impossible times removed).")
+    st.dataframe(filtered_df, use_container_width=True)
