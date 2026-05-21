@@ -1,3 +1,9 @@
+'''
+BAGORIO, Ivan ; CAPULE, Gian ; DIZON, Ahrdy ; RIÑON, Cedric
+2026 - 05
+Description: Streamlit webapps
+'''
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -9,7 +15,6 @@ import os
 st.set_page_config(page_title="Madrid 10K Analyzer", layout="wide")
 st.title("🏃‍♂️ Madrid 10K Race Performance Analyzer")
 
-# --- IMAGE 1: Hero Banner ---
 st.image("runners.png", use_container_width=True, caption="San Silvestre Vallecana - The Final Race of the Year")
 
 st.write("### Welcome to the ultimate finish line post-mortem")
@@ -31,7 +36,6 @@ with st.expander("📖 About the Race & Data Significance"):
         * **Data Significance:** This dataset offers a unique look at human performance under pressure. Because the race takes place on the final day of the year, it captures peak performance data where runners are often attempting to set their final personal best of the season.
         """)
     with col_exp2:
-        # --- IMAGE 2: Start Area / Event Context ---
         st.image("start.png", use_container_width=True, caption="Race Start at Santiago Bernabéu")
 
 
@@ -141,19 +145,19 @@ with tab1:
     st.write("**Finish Time distribution:** See where the crowd clusters and how you compare to the 'average' runner.")
     bins = st.slider("Number of Histogram Bins", min_value=10, max_value=100, value=30)
     fig_uni = eda.plot_univariate(filtered_df, bins=bins)
-    st.pyplot(fig_uni)
+    st.plotly_chart(fig_uni, use_container_width=True)
 
 with tab2:
     st.write("**Demographics:** A deep dive into the age, gender, and regional composition of the race.")
     if len(filtered_df) > 0:
         fig_bi = eda.plot_bivariate(filtered_df)
-        st.pyplot(fig_bi)
+        st.plotly_chart(fig_bi, use_container_width=True)
 
 with tab3:
     st.write("**Pacing Efficiency:** Did you start too fast? Analyze Negative Splits vs. the Positive Splits.")
     if len(filtered_df) > 10:
         fig_multi = eda.plot_efficiency(filtered_df)
-        st.pyplot(fig_multi)
+        st.plotly_chart(fig_multi, use_container_width=True)
 
 with tab4:
     st.write("**Split Correlation:** See how your 5K split predicted your final 10K outcome.")
@@ -174,7 +178,7 @@ with tab4:
 
         if len(filtered_df) > 5:
             fig_corr = eda.plot_correlation(filtered_df, chosen_metric, chosen_label)
-            st.pyplot(fig_corr)
+            st.plotly_chart(fig_corr, use_container_width=True)
 
     with col6:
         st.markdown(f"""
@@ -187,7 +191,6 @@ with tab4:
 with tab5:
     st.write("**Route & Splits:** The course profile mapped against median segment paces.")
 
-    # --- IMAGE 3: Route Map ---
     st.image("route.png", use_container_width=True, caption="Race Route Map: Madrid 10K")
 
     if len(filtered_df) > 0:
