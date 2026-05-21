@@ -120,7 +120,17 @@ def plot_bivariate(df):
 
 
 def plot_efficiency(df):
-    sample_df = df.sample(min(1000, len(df))).copy()
+    # Sort data to isolate the fastest and slowest runners
+    df_sorted = df.sort_values('total_seconds')
+
+    if len(df_sorted) > 1000:
+        # Guarantee inclusion of extreme outliers (top 50 and bottom 50)
+        top_runners = df_sorted.head(50)
+        bottom_runners = df_sorted.tail(50)
+        mid_runners = df_sorted.iloc[50:-50].sample(900)
+        sample_df = pd.concat([top_runners, bottom_runners, mid_runners])
+    else:
+        sample_df = df_sorted.copy()
 
     sample_df['5km Time'] = sample_df['5km_seconds'].apply(lambda x: f"{int(x // 60)}:{int(x % 60):02d}")
     sample_df['Total Time'] = sample_df['total_seconds'].apply(lambda x: f"{int(x // 60)}:{int(x % 60):02d}")
@@ -184,7 +194,9 @@ def plot_correlation(df, chosen_metric, chosen_label):
     return fig
 
 
+# Generates an interactive chart of the mean progression vs the fastest runner
 def plot_route_splits(df):
+    # Calculate the mean time in minutes for each checkpoint
     means = {
         '2.5 km': df['split_2.5k_minutes'].mean(),
         '5.0 km': df['split_5k_minutes'].mean(),
@@ -192,13 +204,24 @@ def plot_route_splits(df):
         '10.0 km': df['total_minutes'].mean()
     }
 
+    # Extract the exact splits of the fastest runner in the filtered data
+    fastest_runner = df.loc[df['total_minutes'].idxmin()]
+    fastest = {
+        '2.5 km': fastest_runner['split_2.5k_minutes'],
+        '5.0 km': fastest_runner['split_5k_minutes'],
+        '7.5 km': fastest_runner['split_7.5k_minutes'],
+        '10.0 km': fastest_runner['total_minutes']
+    }
+
     distances = list(means.keys())
-    times = list(means.values())
+    mean_times = list(means.values())
+    fastest_times = list(fastest.values())
 
     fig = go.Figure()
 
+    # The mean progression line
     fig.add_trace(go.Scatter(
-        x=distances, y=times,
+        x=distances, y=mean_times,
         mode='lines+markers',
         name='Mean Cumulative Time',
         line=dict(color='royalblue', width=4),
@@ -206,14 +229,25 @@ def plot_route_splits(df):
         hovertemplate='%{x} Checkpoint<br>Mean Time: %{y:.2f} mins<extra></extra>'
     ))
 
-    fig.add_annotation(x='2.5 km', y=times[0], text="Start Area:<br>Santiago Bernabéu", showarrow=True, arrowhead=2, ax=0, ay=-40)
-    fig.add_annotation(x='7.5 km', y=times[2], text="7.5km Mark:<br>The Uphill 'Sting'", showarrow=True, arrowhead=2, ax=-30, ay=-50)
-    fig.add_annotation(x='10.0 km', y=times[3], text="Finish Line:<br>Estadio de Vallecas", showarrow=True, arrowhead=2, ax=-40, ay=40)
+    # The fastest runner progression line
+    fig.add_trace(go.Scatter(
+        x=distances, y=fastest_times,
+        mode='lines+markers',
+        name='Fastest Runner',
+        line=dict(color='gold', width=4, dash='dash'),
+        marker=dict(size=12, color='darkgoldenrod', symbol='star'),
+        hovertemplate='%{x} Checkpoint<br>Fastest Time: %{y:.2f} mins<extra></extra>'
+    ))
+
+    # Adding Course Annotations based on the PDF context
+    fig.add_annotation(x='2.5 km', y=mean_times[0], text="Start Area:<br>Santiago Bernabéu", showarrow=True, arrowhead=2, ax=0, ay=-40)
+    fig.add_annotation(x='7.5 km', y=mean_times[2], text="7.5km Mark:<br>The Uphill 'Sting'", showarrow=True, arrowhead=2, ax=-30, ay=-50)
+    fig.add_annotation(x='10.0 km', y=mean_times[3], text="Finish Line:<br>Estadio de Vallecas", showarrow=True, arrowhead=2, ax=-40, ay=40)
 
     fig.update_layout(
         title="Interactive Race Progression & Elevation Impact",
         xaxis_title="Race Checkpoint",
-        yaxis_title="Cumulative Mean Time (Minutes)",
+        yaxis_title="Cumulative Time (Minutes)",
         hovermode="x unified",
         margin=dict(l=40, r=40, t=60, b=40),
         template='plotly_white'
