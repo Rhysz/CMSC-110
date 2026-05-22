@@ -5,13 +5,12 @@ Description: Streamlit webapps
 '''
 
 import streamlit as st
-import pandas as pd
 import numpy as np
 import scipy.stats as stats
 import eda
 import os
 
-# 1. Title and Introduction
+#Title and Introduction
 st.set_page_config(page_title="Madrid 10K Analyzer", layout="wide")
 st.title("🏃‍♂️ Madrid 10K Race Performance Analyzer")
 
@@ -39,7 +38,7 @@ with st.expander("📖 About the Race & Data Significance"):
         st.image("start.png", use_container_width=True, caption="Race Start at Santiago Bernabéu")
 
 
-# 2. Data Loading
+#Data Loading
 @st.cache_data
 def load_dataset():
     current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -53,7 +52,7 @@ except Exception as e:
     st.error(f"⚠️ Dataset mapping error: {e}")
     st.stop()
 
-# 3. Sidebar Filtering
+#Sidebar Filtering
 st.sidebar.header("🎯 Live Filter Controls")
 st.sidebar.markdown("Use these adjustments to segment the race field:")
 
@@ -85,7 +84,7 @@ if filtered_df.empty:
         "⚠️ No data items match your exact selected filter targets. Adjust the sidebar sliders or choose more groups!")
     st.stop()
 
-# 4. Key Performance Metrics
+#Key Performance Metrics
 st.subheader("📊 Segment Overview & Key Metrics")
 col1, col2, col3, col4 = st.columns(4)
 
@@ -102,7 +101,7 @@ col4.metric("Fastest Clock Time", f"{int(fastest_seconds // 60)}:{int(fastest_se
 
 st.divider()
 
-# 5. Prediction Form
+#Prediction Form
 st.subheader("⏱️ Placement Prediction Calculator")
 st.write("Punch in your stats to see exactly where you land in the pack.")
 
@@ -129,7 +128,7 @@ if len(filtered_df) > 0:
 
 st.divider()
 
-# 6. Interactive Visualizations
+#Interactive Visualizations
 st.subheader("📈 The Analytical Toolkit")
 
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
@@ -186,33 +185,16 @@ with tab3:
         st.plotly_chart(fig_multi, use_container_width=True)
 
 with tab4:
-    col5, col6 = st.columns([1.2, 1])
-    with col5:
-        metric_mapping = {
-            '2.5km Split Time': '2.5km_seconds',
-            '5km Split Time': '5km_seconds',
-            '7.5km Split Time': '7.5km_seconds'
-        }
+    st.markdown("""
+    ### Split Correlation
+    This comprehensive correlation matrix indicates the relationship between every race split and the final finish time. 
+    
+    * **Interactive Correlation Insight:** The diagonal clusters represent near-perfect correlation across checkpoints. A coefficient near **1.0000** indicates that performance at that specific checkpoint strongly anchors the eventual placement. Comparing early splits to the final 10km mark reveals how pacing consistency evolves throughout the race.
+    """)
 
-        chosen_label = st.selectbox(
-            "Select intermediate benchmark to correlate with total finish time:",
-            list(metric_mapping.keys())
-        )
-        chosen_metric = metric_mapping[chosen_label]
-
-        if len(filtered_df) > 5:
-            fig_corr = eda.plot_correlation(filtered_df, chosen_metric, chosen_label)
-            st.plotly_chart(fig_corr, use_container_width=True)
-
-    with col6:
-        st.markdown(f"""
-        ### Split Correlation
-        The diagonal cluster of points indicates the relationship between the 5 km split and the final finish time. Runners closer to the center line maintained the most consistent velocity while those drift further indicate significant break in their pacing.
-        <br><br>
-        **Interactive Correlation Insight:**
-        * You are currently inspecting the interactive link between **{chosen_label}** and final finish time.
-        * A coefficient near **1.0000** indicates that performance at that specific checkpoint strongly anchors the eventual placement. 
-        """, unsafe_allow_html=True)
+    if len(filtered_df) > 5:
+        fig_corr = eda.plot_correlation(filtered_df)
+        st.plotly_chart(fig_corr, use_container_width=True)
 
 with tab5:
     st.markdown("""
