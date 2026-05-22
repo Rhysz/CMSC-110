@@ -142,26 +142,50 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 ])
 
 with tab1:
-    st.write("**Finish Time distribution:** See where the crowd clusters and how you compare to the 'average' runner.")
+    st.markdown("""
+    ### Finish Time Distribution Analysis
+    
+    **📊 The Performance Curve:** This histogram illustrates the frequency distribution of finish times across the entire population. It provides a visual census of where the highest concentration of runners finished, allowing for assessment of the race's overall speed and difficulty.
+    
+    **📍 The Mean Baseline:** Red Dotted Line (60:19): The vertical axis represents the statistical average for the event. This line bisects the population, serving as the definitive threshold for "above-average" performance. The data shows a heavy clustering of athletes immediately preceding this line, indicating a high volume of runners attempting to break the one-hour barrier.
+    
+    **📉 Performance Extremes:** The steep drop on the far left (33:20) identifies the Elite Outliers, highlighting the characteristics of the professional tier. Conversely, the long tail extending toward the 100 minute mark captures the recreational base, showcasing the inclusive, mass participation nature of the event.
+    
+    **🧩 The Distribution Shape:** The smooth blue curve reveals a right-skewed distribution. This indicates that while the majority of finishers are concentrated around the 60 minute mark, a significant portion of the field consists of recreational participants who extend the average time.
+    """)
     bins = st.slider("Number of Histogram Bins", min_value=10, max_value=100, value=30)
     fig_uni = eda.plot_univariate(filtered_df, bins=bins)
     st.plotly_chart(fig_uni, use_container_width=True)
 
 with tab2:
-    st.write("**Demographics:** A deep dive into the age, gender, and regional composition of the race.")
+    st.markdown("""
+    ### Demographic Analysis
+    
+    **⚖ Gender-Based Variance:** The visualization contrasts finish times between Male and Female participants across all age brackets. The horizontal line within each box represents the median finish time, revealing a consistent performance delta across the field, with male finishers generally clustering at a lower time-stamp.
+    
+    **⏳ Age Category Stratification:** Notably, the 20-22 and 23-34 brackets showcase the highest density of fast finishers, while the 55+ category exhibits a wider variance in completion times.
+    
+    **📦 Interquartile Range:** Each box represents the middle 50% of the population for that demographic. A shorter box indicates high performance consistency within that age group, while a taller box signifies a more diverse range of fitness levels.
+    
+    **🔘 Statistical Outliers:** The individual circles above the whiskers identify Statistical Outliers runners whose times significantly deviate from their demographic norm. These points represent either exceptional recreational endurance or unique performance anomalies that sit outside the expected 95% confidence interval.
+    """)
     if len(filtered_df) > 0:
         fig_bi = eda.plot_bivariate(filtered_df)
         st.plotly_chart(fig_bi, use_container_width=True)
 
 with tab3:
-    st.write("**Pacing Efficiency:** Did you start too fast? Analyze Negative Splits vs. the Positive Splits.")
+    st.markdown("""
+    ### Pacing Efficiency Analysis
+    
+    **🟢 Negative Split (High efficiency):** This identifies runners who completed the second 5 km faster than the first. In a high performance context, a negative split indicates superior energy management and ability to overcome the course elevation with momentum.
+    
+    **🔴 Positive Split (Pace decay):** This indicates runners who slow down during the second half of the race. This illustrates the impact of early stage overexhaustion and exertion and the difficulty of the Madrid uphill finish.
+    """)
     if len(filtered_df) > 10:
         fig_multi = eda.plot_efficiency(filtered_df)
         st.plotly_chart(fig_multi, use_container_width=True)
 
 with tab4:
-    st.write("**Split Correlation:** See how your 5K split predicted your final 10K outcome.")
-
     col5, col6 = st.columns([1.2, 1])
     with col5:
         metric_mapping = {
@@ -182,6 +206,8 @@ with tab4:
 
     with col6:
         st.markdown(f"""
+        ### Split Correlation
+        The diagonal cluster of points indicates the relationship between the 5 km split and the final finish time. Runners closer to the center line maintained the most consistent velocity while those drift further indicate significant break in their pacing.
         <br><br>
         **Interactive Correlation Insight:**
         * You are currently inspecting the interactive link between **{chosen_label}** and final finish time.
@@ -189,9 +215,20 @@ with tab4:
         """, unsafe_allow_html=True)
 
 with tab5:
-    st.write("**Route & Splits:** The course profile mapped against median segment paces.")
+    st.markdown("""
+    ### Route Split Map
+    * **Phase 1 (Start - 8km):** A rapid descent from Santiago Bernabéu through Paseo de la Castellana and Cibeles. High field volume and fast midpoint splits are typically established here.
+    * **Phase 2 (8km - Finish):** Transition to Estadio de Vallecas, the final segment introduces uphill sting wherein the athletes maintain velocity against elevation gain.
+    """)
 
     st.image("route.png", use_container_width=True, caption="Race Route Map: Madrid 10K")
+
+    st.markdown("""
+    ### Pacing Progression
+    * **Fastest Runner Baseline:** The elite ceiling represented by the golden dashed line, identifies the absolute peak performance within the dataset. The graph visualizes the gap between the elite and the mean cumulative time. This shows the top tier pace operates at a significant lower time intensity than the general.
+    * **Mean Cumulative Time:** This indicates the average progression of the 23,422 runners. This shows how the general managed their energy from the Santiago Bernabeu start to Estadio de Vallecas finish. The steady climb highlights consistent endurance effort across the 10 km span.
+    * **Pacing Gap:** The divergence between the line indicates the elite tighter pacing discipline through the final 2.5 km uphill segment, whereas general runners experience more pronounced slowdown as they approach the 10 km mark.
+    """)
 
     if len(filtered_df) > 0:
         fig_route = eda.plot_route_splits(filtered_df)
